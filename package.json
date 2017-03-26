@@ -1,0 +1,23 @@
+{
+  "name": "anyproxy-package-map-local",
+  "version": "1.0.0",
+  "description": "map local plugin for AnyProxy",
+  "main": "index.js",
+  "anyproxy": {
+    "rule": "./rule.js",
+    "menu": {
+      "name": "Map Local",
+      "type": "rule",
+      "key": "map-local"
+    }
+  },
+  "scripts": {},
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "mime": "^1.3.4"
+  },
+  "dependencies": {
+    "mime-types": "^2.1.14"
+  }
+}
