@@ -50,7 +50,7 @@ function * _getMappedLocalFileFromConfig (requestUrl, config = {}) {
 }
 
 module.exports = {
-  summary: 'A rule to map local to url',
+  summary: 'A rule to map the remote url with local file',
   loadConfig: function* (config) {
     this.config = config;
   },

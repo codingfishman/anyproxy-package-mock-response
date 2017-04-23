@@ -1,6 +1,6 @@
 {
   "name": "anyproxy-package-map-local",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "map local plugin for AnyProxy",
   "main": "index.js",
   "anyproxy": {
