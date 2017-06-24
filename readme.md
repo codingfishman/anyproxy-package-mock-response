@@ -1,1 +1,1 @@
-A plugin for the AnyProxy, offers the ability to map remote requests to local file.
+A plugin package to do mock response with the help of AnyProxy 4.0, the basic theory is fork from the [dora-plugin-proxy](https://github.com/dora-js/dora-plugin-proxy).

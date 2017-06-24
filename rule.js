@@ -1,64 +1,107 @@
+const { parse: parseUrl } = require('url');
 const fs = require('fs');
 const path = require('path');
-const mime = require('mime-types');
+const co = require('co');
 
-/**
-* get the url mapped local file from the configuration
+const { isRemote, isMatch, getRes, handleWinPath } = require('./util.js');
+
+const getMatchProxyOption = (requestDetail, proxyConfig) => {
+  for (const pattern in proxyConfig) {
+    if (proxyConfig.hasOwnProperty(pattern) && isMatch(requestDetail.url, pattern)) {
+      return {
+        pattern,
+        value: proxyConfig[pattern]
+      }
+    }
+  }
+}
+
+/*
+* get the url string exclude the pattern from the reqUrl
+* @Param {String} reqUrl  the original request url
+* @Param {String} exclude  the part that to be excluded, but the end (.*) pattern will be kept
 */
+const getSubPathExcludePattern = (reqUrl, exclude) => {
+  const match = reqUrl.match(exclude);
+  return match && match[1] || '';
+}
 
-function * _getMappedLocalFileFromConfig (requestUrl, config = {}) {
-  return new Promise ((resolve) => {
-    const list = config.list;
-    if (!config.list) {
+const getMockResponse = function * (requestDetail, matchedProxy) {
+  return new Promise((resolve, reject) => {
+    const callback = (status, header, responseData) => {
+      console.info('==> resolve in mock response, ', responseData);
+      resolve({
+        statusCode: status,
+        header,
+        body: responseData
+      });
+    }
+
+    if (!matchedProxy) {
       return resolve(null);
     }
 
-    let targetFilePath = null;
-    const configLength = list.length;
-    for (let i = 0; i < configLength; i++ ) {
-      const { url, file} = list[i];
+    const { value: proxyOption } = matchedProxy;
 
-      if (!url) {
-        continue;
-      }
-
-      if (requestUrl.indexOf(url) > -1) {
-        targetFilePath = file;
-        break;
-      }
+    if (typeof proxyOption === 'function') {
+      proxyOption(requestDetail, getRes(requestDetail, callback));
     }
 
-    if (!targetFilePath) {
-      resolve(null);
-    } else {
-      fs.readFile(targetFilePath, (error, data) => {
-        if (error) {
-          throw new Error(error);
-        }
-
-        resolve({
-          statusCode: 200,
-          header: {
-            'Content-Type': mime.contentType(path.extname(targetFilePath))
-          },
-          body: data
-        });
-      })
+    // Handle with local file
+    if (typeof proxyOption === 'string' && !isRemote(proxyOption)) {
+      getRes(requestDetail, callback).end(fs.readFileSync(proxyOption), 'utf-8');
     }
-  })
-
+  });
 }
 
+/**
+* if the mapped proxy is set to do inverse proxy
+*/
+const handleInverseProxy = (requestDetail, proxyTarget) => {
+  const { value: targetUrl, pattern } = proxyTarget;
+  const options = requestDetail.requestOptions;
+
+  const excludeSubPath = getSubPathExcludePattern(requestDetail.url, pattern);
+  const { hostname, port, path: targetPath, protocol } = parseUrl(targetUrl);
+  options.hostname = hostname;
+  requestDetail.protocol = protocol;
+
+  if (port) {
+    options.port = port;
+  }
+
+  const finalPath = handleWinPath(path.join(targetPath, excludeSubPath));
+
+  options.path = finalPath;
+};
+
 module.exports = {
-  summary: 'A rule to map the remote url with local file',
-  loadConfig: function* (config) {
+  *loadConfig(config) {
     this.config = config;
   },
-
   *beforeSendRequest(requestDetail = {}) {
-    const { url } = requestDetail;
-    const response = yield _getMappedLocalFileFromConfig(url, this.config);
-    requestDetail.response = response;
-    return requestDetail;
-  },
+    return new Promise((resolve, reject) => {
+      const matchedProxy = getMatchProxyOption(requestDetail, this.config);
+      // if there is no matched proxy option, do nothing here
+      if (!matchedProxy) {
+        resolve(requestDetail);
+      }
+      if (isRemote(matchedProxy.value)) {
+        handleInverseProxy(requestDetail, matchedProxy);
+        resolve(requestDetail);
+      } else {
+        // TODO local mock handler
+        co(function * () {
+          return yield getMockResponse(requestDetail, matchedProxy);
+        })
+        .then((response) => {
+          requestDetail.response = response;
+          resolve(requestDetail);
+        })
+        .catch(() => {
+          resolve(requestDetail);
+        })
+      }
+    })
+  }
 };
