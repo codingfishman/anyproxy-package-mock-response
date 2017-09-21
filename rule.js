@@ -29,7 +29,7 @@ const getSubPathExcludePattern = (reqUrl, exclude) => {
 const getMockResponse = function * (requestDetail, matchedProxy) {
   return new Promise((resolve, reject) => {
     const callback = (status, header, responseData) => {
-      console.info('==> resolve in mock response, ', responseData);
+      // console.info('==> resolve in mock response, ', responseData);
       resolve({
         statusCode: status,
         header,
@@ -44,12 +44,19 @@ const getMockResponse = function * (requestDetail, matchedProxy) {
     const { value: proxyOption } = matchedProxy;
 
     if (typeof proxyOption === 'function') {
-      proxyOption(requestDetail, getRes(requestDetail, callback));
+      const req = {
+        url: requestDetail.url,
+        protocol: requestDetail.protocol,
+        headers: requestDetail.requestOptions.headers,
+        body: requestDetail.requestData
+      };
+
+      proxyOption(req, getRes(requestDetail, callback));
     }
 
     // Handle with local file
     if (typeof proxyOption === 'string' && !isRemote(proxyOption)) {
-      getRes(requestDetail, callback).end(fs.readFileSync(proxyOption), 'utf-8');
+      getRes(requestDetail, callback).end(fs.readFileSync(proxyOption, 'utf-8'));
     }
   });
 }
@@ -90,7 +97,6 @@ module.exports = {
         handleInverseProxy(requestDetail, matchedProxy);
         resolve(requestDetail);
       } else {
-        // TODO local mock handler
         co(function * () {
           return yield getMockResponse(requestDetail, matchedProxy);
         })

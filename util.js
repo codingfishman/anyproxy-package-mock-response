@@ -1,6 +1,6 @@
 const { parse: parseUrl } = require('url');
 const isPlainObject = require('is-plain-object');
-const mime = require('mime-type/with-db');
+const mime = require('mime-types');
 
 function decodeParam(val) {
   if (typeof val !== 'string' || val.length === 0) {
