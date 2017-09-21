@@ -1,6 +1,6 @@
 {
   "name": "anyproxy-package-mock-response",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "description": "mock the response in the way you like",
   "main": "index.js",
   "anyproxy": {
