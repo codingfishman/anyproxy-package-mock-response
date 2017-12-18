@@ -1,10 +1,9 @@
 {
   "name": "anyproxy-package-mock-response",
-  "version": "1.0.1",
+  "version": "1.0.3",
   "description": "mock the response in the way you like",
-  "main": "index.js",
+  "main": "rule.js",
   "anyproxy": {
-    "rule": "./rule.js",
     "pluginType": "rule",
     "menu": {
       "name": "Mock",

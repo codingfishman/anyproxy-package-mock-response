@@ -70,16 +70,19 @@ const handleInverseProxy = (requestDetail, proxyTarget) => {
 
   const excludeSubPath = getSubPathExcludePattern(requestDetail.url, pattern);
   const { hostname, port, path: targetPath, protocol } = parseUrl(targetUrl);
+  const finalPath = handleWinPath(path.join(targetPath, excludeSubPath));
+
   options.hostname = hostname;
   requestDetail.protocol = protocol;
 
   if (port) {
     options.port = port;
+  } else {
+    options.port = protocol === 'https:' ? '443' : '80';
   }
 
-  const finalPath = handleWinPath(path.join(targetPath, excludeSubPath));
-
   options.path = finalPath;
+  options.headers.host = hostname + ':' + options.port;
 };
 
 module.exports = {
